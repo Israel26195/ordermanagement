@@ -10,11 +10,17 @@ public class Product {
 	private Integer prodId;
 	private Integer quantity;
 	private BigDecimal price;
-	private Integer sellerId;
+	private Integer sellerid;
 	private String status;
 	
 	public Integer getQuantity() {
 		return quantity;
+	}
+	public Integer getSellerid() {
+		return sellerid;
+	}
+	public void setSellerid(Integer sellerid) {
+		this.sellerid = sellerid;
 	}
 	public void setQuantity(Integer quantity) {
 		this.quantity = quantity;
@@ -29,7 +35,7 @@ public class Product {
 	@Override
 	public String toString() {
 		return "Product [orderId=" + orderId + ", prodId=" + prodId + ", quantity=" + quantity + ", price=" + price
-				+ ", sellerId=" + sellerId + ", status=" + status + "]";
+				+ ", sellerid=" + sellerid + ", status=" + status + "]";
 	}
 	public Integer getOrderId() {
 		return orderId;
@@ -43,12 +49,7 @@ public class Product {
 	public void setPrice(BigDecimal price) {
 		this.price = price;
 	}
-	public Integer getSellerId() {
-		return sellerId;
-	}
-	public void setSellerId(Integer sellerId) {
-		this.sellerId = sellerId;
-	}
+	
 	public Integer getProdId() {
 		return prodId;
 	}

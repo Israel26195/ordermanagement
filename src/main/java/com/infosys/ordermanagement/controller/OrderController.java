@@ -1,12 +1,17 @@
 package com.infosys.ordermanagement.controller;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -25,7 +30,6 @@ import org.springframework.web.client.RestTemplate;
 import com.infosys.ordermanagement.Beans.OrderBean;
 import com.infosys.ordermanagement.Beans.Product;
 import com.infosys.ordermanagement.Beans.ProductId;
-import com.infosys.ordermanagement.model.OrderModel;
 import com.infosys.ordermanagement.entities.OrderEntity;
 import com.infosys.ordermanagement.entities.ProductsOrdered;
 import com.infosys.ordermanagement.services.OrderService;
@@ -37,40 +41,49 @@ public class OrderController {
 	private OrderService orderservice;
 	@Autowired
 	public RestTemplate restTemplate;
+	@Value("${userServiceUrl}")
+	public String cartServiceUrl;
+	@Value("${productServiceUrl}")
+	public String productServiceUrl;
 	
 	
-	@RequestMapping("/orders")
-	public Iterable<OrderEntity> getOrders() {
-		return orderservice.getAllOrders();	
+	@RequestMapping("/orders/{buyerId}")
+	public ArrayList <OrderBean> getOrders(@PathVariable("buyerId") Integer buyerId ) {
+		System.out.println(buyerId);
+		return orderservice.getAllOrders(buyerId);	
 	}
 	
 	@PostMapping("/orders/placeOrder")
-	// I need buyer Id
-	public void placeOrder(@RequestBody OrderBean order) {	
-//		ArrayList<Product> products= order.getOrderedProducts();
-//		MediaType contentType = responseEntity.getHeaders().getContentType();
-//		HttpStatus statusCode = responseEntity.getStatusCode();
-		ResponseEntity<Product[]> responseEntity = restTemplate.getForEntity("http://vfpmys-37:8080/api/cart/checkout?buyerId=12", Product[].class);
-		Product[] objects = responseEntity.getBody();		
+	public String placeOrder(@RequestBody OrderBean order) {
+		
+		cartServiceUrl=cartServiceUrl+order.getBuyerId().toString();		
+		try {
+			ResponseEntity<Product[]> responseEntity = restTemplate.getForEntity(cartServiceUrl, Product[].class);
+		
+		Product[] objects = responseEntity.getBody();
+		
+		
+		// Product Service needs array of product Ids
 		List<Integer> prodIds= new ArrayList<Integer>();
-		for(int i=0;i<objects.length;i++) {
-			
-			prodIds.add(objects[i].getProdId());
-		}
+		for(int i=0;i<objects.length;i++) {prodIds.add(objects[i].getProdId());}
+		
+		// Populating that array in ProductId object to POST a request
 		ProductId prodId1=new ProductId();
 		prodId1.setProdId(prodIds);
 		HttpHeaders headers = new HttpHeaders();
 		headers.setContentType(MediaType.APPLICATION_JSON);
-//		MultiValueMap<String, ProductId> map= new LinkedMultiValueMap<String, List<Integer>>();
-//		map.add("prodId", prodIds);
 		HttpEntity<ProductId> request = new HttpEntity<ProductId>(prodId1, headers);
-		ResponseEntity<Product[]> products1 = restTemplate.postForEntity("http://vfpmys-56:8080/api/products/",request, Product[].class);
+		
+		// Contacting the Product Service, receives an array of Product Objects
+		ResponseEntity<Product[]> products1 = restTemplate.postForEntity(productServiceUrl,request, Product[].class);
 		Product[] products12 = products1.getBody();
+		
 		ArrayList<Product> products=new ArrayList<Product>();
 		for(int i=0;i<products12.length;i++) {
+			System.out.println(products12[i]);
 			products.add(products12[i]);
 		}
-		System.out.println(products);
+		// To set the quantity, received from the Cart, into the corresponding product Objects
 		products.forEach(element->{
 			for(int j=0;j<objects.length;j++) {
 				if(objects[j].getProdId().equals(element.getProdId())) {
@@ -79,8 +92,13 @@ public class OrderController {
 			}
 		});
 		order.setOrderedProducts(products);
-		order.setBuyerId(12);
-		orderservice.placeOrder(order,products);
+		orderservice.placeOrder(order);
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			return "Error in placing the order! Contact your Admin";
+		}
+		return "Order placed Sucessfully";
 	}
 	
 	@RequestMapping(method=RequestMethod.PUT,value="/orders/seller/status")
@@ -101,7 +119,6 @@ public class OrderController {
 	public void cancelOrder(@PathVariable("orderId") Integer orderId ) {
 		orderservice.cancelAnOrder(orderId);
 	}
-	
 }
 
 

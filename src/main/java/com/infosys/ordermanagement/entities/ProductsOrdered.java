@@ -25,7 +25,7 @@ public class ProductsOrdered implements Serializable{
 	private Integer prodId;
 	
 	@Column(name="SELLERID")
-	private Integer sellerId;
+	private Integer sellerid;
 	
 	@Column(name="QUANTITY")
 	private Integer quantity;
@@ -65,18 +65,22 @@ public class ProductsOrdered implements Serializable{
 		this.prodId = prodId;
 	}
 
-	public Integer getSellerId() {
-		return sellerId;
+	
+
+	public Integer getSellerid() {
+		return sellerid;
+	}
+
+	public void setSellerid(Integer sellerid) {
+		this.sellerid = sellerid;
 	}
 
 	@Override
 	public String toString() {
-		return "ProductsOrdered [orderId=" + orderId + ", prodId=" + prodId + ", sellerId=" + sellerId + ", quantity="
+		return "ProductsOrdered [orderId=" + orderId + ", prodId=" + prodId + ", sellerid=" + sellerid + ", quantity="
 				+ quantity + ", status=" + status + "]";
 	}
 
-	public void setSellerId(Integer sellerId) {
-		this.sellerId = sellerId;
-	}
+	
 
 }
