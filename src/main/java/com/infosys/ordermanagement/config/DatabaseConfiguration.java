@@ -1,4 +1,4 @@
-package com.infosys.ekart.config;
+package com.infosys.ordermanagement.config;
 
 
 import com.infosys.ordermanagement.OrdermanagementApplication;
@@ -7,14 +7,15 @@ import org.springframework.boot.jdbc.DataSourceBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.context.annotation.Profile;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaVendorAdapter;
 
 import javax.sql.DataSource;
 import java.util.Properties;
 
+@Profile("aws")
 @Configuration
 @EnableJpaRepositories(
         basePackages = "com.infosys.ordermanagement",
@@ -23,6 +24,17 @@ import java.util.Properties;
 public class DatabaseConfiguration {
 
     private final String PACKAGE_SCAN = "com.infosys.ordermanagement";
+
+    @Bean
+    public DataSource getDataSource() {
+        DataSourceBuilder dataSourceBuilder = DataSourceBuilder.create();
+        dataSourceBuilder.driverClassName("org.h2.Driver");
+        dataSourceBuilder.url("jdbc:h2:mem:test");
+        dataSourceBuilder.username("SA");
+        dataSourceBuilder.password("");
+        return dataSourceBuilder.build();
+    }
+
     @Primary
     @Bean(name = "awsDataSource")
     public DataSource awsDataSource() {
@@ -36,15 +48,6 @@ public class DatabaseConfiguration {
     }
 
 
-    @Primary
-    @Bean(name = "dbSessionFactory")
-    public LocalSessionFactoryBean dbSessionFactory() {
-        LocalSessionFactoryBean sessionFactoryBean = new LocalSessionFactoryBean();
-        sessionFactoryBean.setDataSource(awsDataSource());
-        sessionFactoryBean.setPackagesToScan(PACKAGE_SCAN);
-        sessionFactoryBean.setHibernateProperties(hibernateProperties());
-        return sessionFactoryBean;
-    }
 
     @Bean(name = "customEntityManager")
     public LocalContainerEntityManagerFactoryBean customEntityManager() {

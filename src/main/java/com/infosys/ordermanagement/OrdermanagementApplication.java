@@ -13,10 +13,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.web.client.RestTemplate;
 
 
 @SpringBootApplication
+@ComponentScan({"com.infosys.ordermanagement"})
 public class OrdermanagementApplication {
 
     public static Properties PROP;
@@ -25,6 +27,7 @@ public class OrdermanagementApplication {
         PROP = readPropertiesFromS3();
 
         SpringApplication app = new SpringApplication(OrdermanagementApplication.class);
+        app.setAdditionalProfiles("aws");
         app.setDefaultProperties(PROP);
         app.run(args);
     }
