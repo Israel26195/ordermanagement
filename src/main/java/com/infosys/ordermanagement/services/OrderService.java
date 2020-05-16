@@ -12,9 +12,15 @@ import java.util.Properties;
 
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.infosys.ordermanagement.Beans.OrderBean;
 import com.infosys.ordermanagement.Beans.Product;
@@ -34,63 +40,96 @@ public class OrderService {
 	private ProductsOrderedRepository orderProdsRepo;
 	@Autowired
 	private ProductsOrdered productsOrdered;
+	@Autowired
+	public RestTemplate restTemplate;
+	@Value("${userServiceUrl}")
+	public String userServiceUrl;
 
+	public Integer usingRewardPoints(Integer buyerId) {
+//		String getrewardUrl=userServiceUrl+"rewardPoint?buyerId="+buyerId;
+//		ResponseEntity<Integer> responseEntity = restTemplate.getForEntity(getrewardUrl, Integer.class);
+//		Integer reward=responseEntity.getBody();
+//		Integer discount=reward/4;
+//		return discount;
+		
+		Integer newRewardPoints = new Integer(1000)/100; // 100 ruppees equals 1 point
+		String updateRewardPointsUrl = userServiceUrl +"rewardPoint/update?buyerId="+buyerId+"&point="+newRewardPoints;
+		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
+		return 1;
+	}
 	
 //	This method inserts an order into the orderdetails table and also each and every record of products that are ordered into productsordered table.
 	public void placeOrder(OrderBean order) {
 		ArrayList<Product> productsReceived=(ArrayList<Product>) order.getOrderedProducts();
-//		System.out.println(productsReceived.size());
-		ArrayList<Integer> prodIds= new ArrayList();
-		productsReceived.forEach((Product product)->{prodIds.add(product.getProdId());});
 		
-//		ArrayList<Product> productsReceived=new ArrayList();
-//		productsReceived=(ArrayList<Product>) order.getOrderedProducts();
 		BigDecimal amount=new BigDecimal(0);
 		for (int j=0;j<productsReceived.size();j++) {
 			Product product=productsReceived.get(j);
 			amount=amount.add(product.getPrice().multiply(new BigDecimal(product.getQuantity())));
 		}
+		// invoking usingRewardPoints method to get the discount
+		BigDecimal discount=new BigDecimal(this.usingRewardPoints(order.getBuyerId()));
+
+		// Checking user is Priviledged or not
+		String isPrivilegeUrl=userServiceUrl+"buyer/isPrivilege?buyerId="+order.getBuyerId();
+		ResponseEntity<Boolean> responseEntity1 = restTemplate.getForEntity(isPrivilegeUrl, Boolean.class);
+		Boolean isPrivileged=responseEntity1.getBody();
 		
+		// Based on isPrivileged, finding the shipping cost
+		BigDecimal shippingCost=new BigDecimal(50);
+		if(isPrivileged.equals(true)) {
+			shippingCost=new BigDecimal(0);
+		}
 		
-//		for (int j=0;j<productsReceived.size();j++) {	
-//			Product product=productsReceived.get(j);
-//			for(int i=0;i<products.size();i++) {
-//				Product prod=products.get(i);
-//				if(prod.getProdId().equals(product.getProdId())) {
-//					prod.setPrice(new BigDecimal(80));
-//					amount=amount.add(prod.getPrice().multiply(new BigDecimal(prod.getQuantity())));
-//					products.get(i).setSellerId(123);
-//				}
-//			}
-//			
-//		};
-		order.setDate(new Date());	order.setAmount(amount);	order.setStatus("PROCESSING");
+		amount=amount.subtract(discount);
+		amount=amount.add(shippingCost);	
+		order.setAmount(amount);
+		order.setDate(new Date());order.setStatus("ORDER PLACED");
 		
 		BeanUtils.copyProperties(order, orderEntity);
 		orderrepo.save(orderEntity);
 		
+		// Adding all the individual products into the db				
 		Integer orderId=orderEntity.getOrderId();
 		productsReceived.forEach((Product prod)->{
-//			System.out.println(prod);
 			prod.setOrderId(orderId);
-			prod.setStatus("PROCESSING");
+			prod.setStatus("ORDER PLACED");
 			BeanUtils.copyProperties(prod, productsOrdered);
 			orderProdsRepo.save(productsOrdered);
 		});
+
+		System.out.println("Helllooooooo");
+		// Calculating and Updating the reward points in the user service
+		Integer newRewardPoints = new Integer(amount.toString()); // 100 ruppees equals 1 point
+		String updateRewardPointsUrl = userServiceUrl +"rewardPoint/update?buyerId="+order.getBuyerId()+"&point="+newRewardPoints;
+		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
+	}
+	
+	public void reOrder(OrderBean order) {
+		ArrayList<Product> orderedProducts=new ArrayList<Product>();
+		Integer orderId=order.getOrderId();
+		orderProdsRepo.findAll().forEach((product)->{
+			if(product.getOrderId().equals(orderId)) {
+				Product prodBean=new Product();
+				BeanUtils.copyProperties(product, prodBean);
+				orderedProducts.add(prodBean);
+			}
+		});
+		order.setOrderedProducts(orderedProducts);
+		order.setAmount(new BigDecimal(0));
+		order.setOrderId(null);
+		this.placeOrder(order);
 	}
 	
 	public ArrayList <OrderBean> getAllOrders(Integer buyerId) {
-//		List<OrderEntity> products=(List<ProductsOrdered>) ;
 		Iterable<OrderEntity> ordersEntities=orderrepo.findAll();
 		ArrayList <OrderBean> orders= new ArrayList<>();
-		for(OrderEntity s: ordersEntities){
-			if (s.getBuyerId().equals(buyerId)) {
-//				System.out.println("Helooooo");
+		for(OrderEntity oe: ordersEntities){
+			if (oe.getBuyerId().equals(buyerId)) {
 				OrderBean ob = new OrderBean();
-				BeanUtils.copyProperties(s, ob);
+				BeanUtils.copyProperties(oe, ob);
 				orders.add(ob);
 				}
-			
 		}
 		return orders;
 	}	
@@ -99,11 +138,8 @@ public class OrderService {
 		ArrayList <ProductsOrdered> orderedProducts = new ArrayList<>();
 		orderProdsRepo.findAll().forEach((ProductsOrdered ordProd)->{
 			if(ordProd.getSellerid().equals(sellerId)) {
-//				Product product=new Product();
-//				BeanUtils.copyProperties(ordProd, product);
 				orderedProducts.add(ordProd);
 			}
-			
 		});
 		
 		return orderedProducts;

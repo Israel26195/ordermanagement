@@ -49,14 +49,26 @@ public class OrderController {
 	
 	@RequestMapping("/orders/{buyerId}")
 	public ArrayList <OrderBean> getOrders(@PathVariable("buyerId") Integer buyerId ) {
-		System.out.println(buyerId);
 		return orderservice.getAllOrders(buyerId);	
+	}
+	
+	@PostMapping("/orders/reOrder/{orderId}/{buyerId}")
+	public void reorder(@PathVariable("orderId") Integer orderId,@PathVariable("buyerId") Integer buyerId) {
+		System.out.println(orderId+buyerId);
+		ArrayList <OrderBean> orders=orderservice.getAllOrders(buyerId);
+		for(int i =0; i<orders.size();i++) {
+			if(orderId.equals(orders.get(i).getOrderId())) {
+				OrderBean order=orders.get(i);
+				orderservice.reOrder(order);
+			}
+		}
+		
 	}
 	
 	@PostMapping("/orders/placeOrder")
 	public String placeOrder(@RequestBody OrderBean order) {
 		
-		cartServiceUrl=cartServiceUrl+order.getBuyerId().toString();		
+		cartServiceUrl=cartServiceUrl+"cart/checkout?buyerId="+order.getBuyerId().toString();		
 		try {
 			ResponseEntity<Product[]> responseEntity = restTemplate.getForEntity(cartServiceUrl, Product[].class);
 		
@@ -119,17 +131,9 @@ public class OrderController {
 	public void cancelOrder(@PathVariable("orderId") Integer orderId ) {
 		orderservice.cancelAnOrder(orderId);
 	}
+	
+	@RequestMapping("/orders/dummy")
+	public void dummy() {
+		orderservice.usingRewardPoints(new Integer(12));
+	}
 }
-
-
-//HttpHeaders headers = new HttpHeaders();
-//headers.setContentType(MediaType.APPLICATION_JSON);
-//
-////MultiValueMap<String, String> map= new LinkedMultiValueMap<String, String>();
-//ArrayList<Integer> prodIds= new ArrayList();
-//
-//map.add("email", "first.last@example.com");
-//
-//HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<MultiValueMap<String, String>>(map, headers);
-//
-//ResponseEntity<String> response = restTemplate.postForEntity( url, request , String.class );
