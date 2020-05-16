@@ -97,10 +97,9 @@ public class OrderService {
 			BeanUtils.copyProperties(prod, productsOrdered);
 			orderProdsRepo.save(productsOrdered);
 		});
-
-		System.out.println("Helllooooooo");
+		
 		// Calculating and Updating the reward points in the user service
-		Integer newRewardPoints = new Integer(amount.toString()); // 100 ruppees equals 1 point
+		Integer newRewardPoints = new Integer(amount.intValue()); // 100 ruppees equals 1 point
 		String updateRewardPointsUrl = userServiceUrl +"rewardPoint/update?buyerId="+order.getBuyerId()+"&point="+newRewardPoints;
 		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
 	}
