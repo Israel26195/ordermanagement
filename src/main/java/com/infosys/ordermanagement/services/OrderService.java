@@ -46,16 +46,11 @@ public class OrderService {
 	public String userServiceUrl;
 
 	public Integer usingRewardPoints(Integer buyerId) {
-//		String getrewardUrl=userServiceUrl+"rewardPoint?buyerId="+buyerId;
-//		ResponseEntity<Integer> responseEntity = restTemplate.getForEntity(getrewardUrl, Integer.class);
-//		Integer reward=responseEntity.getBody();
-//		Integer discount=reward/4;
-//		return discount;
-		
-		Integer newRewardPoints = new Integer(1000)/100; // 100 ruppees equals 1 point
-		String updateRewardPointsUrl = userServiceUrl +"rewardPoint/update?buyerId="+buyerId+"&point="+newRewardPoints;
-		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
-		return 1;
+		String getrewardUrl=userServiceUrl+"rewardPoint?buyerId="+buyerId;
+		ResponseEntity<Integer> responseEntity = restTemplate.getForEntity(getrewardUrl, Integer.class);
+		Integer reward=responseEntity.getBody();
+		Integer discount=reward/4;
+		return discount;
 	}
 	
 //	This method inserts an order into the orderdetails table and also each and every record of products that are ordered into productsordered table.

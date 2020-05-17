@@ -54,7 +54,6 @@ public class OrderController {
 	
 	@PostMapping("/orders/reOrder/{orderId}/{buyerId}")
 	public void reorder(@PathVariable("orderId") Integer orderId,@PathVariable("buyerId") Integer buyerId) {
-		System.out.println(orderId+buyerId);
 		ArrayList <OrderBean> orders=orderservice.getAllOrders(buyerId);
 		for(int i =0; i<orders.size();i++) {
 			if(orderId.equals(orders.get(i).getOrderId())) {
@@ -92,7 +91,6 @@ public class OrderController {
 		
 		ArrayList<Product> products=new ArrayList<Product>();
 		for(int i=0;i<products12.length;i++) {
-			System.out.println(products12[i]);
 			products.add(products12[i]);
 		}
 		// To set the quantity, received from the Cart, into the corresponding product Objects
