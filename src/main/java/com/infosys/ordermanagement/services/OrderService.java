@@ -45,12 +45,20 @@ public class OrderService {
 	@Value("${userServiceUrl}")
 	public String userServiceUrl;
 
-	public Integer usingRewardPoints(Integer buyerId) {
-		String getrewardUrl=userServiceUrl+"rewardPoint?buyerId="+buyerId;
-		ResponseEntity<Integer> responseEntity = restTemplate.getForEntity(getrewardUrl, Integer.class);
-		Integer reward=responseEntity.getBody();
-		Integer discount=reward/4;
-		return discount;
+	public Integer[] usingRewardPoints(Integer buyerId,Integer eligibleDiscount) {
+        String getrewardUrl=userServiceUrl+"rewardPoint?buyerId="+buyerId;
+        ResponseEntity<Integer> responseEntity = restTemplate.getForEntity(getrewardUrl, Integer.class);
+        Integer reward=responseEntity.getBody();
+        Integer discount=reward/4;
+        if(discount>eligibleDiscount) {
+            discount=eligibleDiscount;
+            reward=reward-eligibleDiscount*4;
+        }else {
+            reward=0;
+        }
+        Integer [] valuesArray=new Integer[2];
+        valuesArray[0]=discount;valuesArray[1]=reward;
+        return valuesArray;
 	}
 	
 //	This method inserts an order into the orderdetails table and also each and every record of products that are ordered into productsordered table.
@@ -62,8 +70,11 @@ public class OrderService {
 			Product product=productsReceived.get(j);
 			amount=amount.add(product.getPrice().multiply(new BigDecimal(product.getQuantity())));
 		}
-		// invoking usingRewardPoints method to get the discount
-		BigDecimal discount=new BigDecimal(this.usingRewardPoints(order.getBuyerId()));
+		Integer eligibleDiscount=new Integer(amount.multiply(new BigDecimal(0.1)).intValue());
+		
+        // invoking usingRewardPoints method to get the discount
+        Integer [] valuesArray=this.usingRewardPoints(order.getBuyerId(),eligibleDiscount);
+        BigDecimal discount=new BigDecimal(valuesArray[0]);
 
 		// Checking user is Priviledged or not
 		String isPrivilegeUrl=userServiceUrl+"buyer/isPrivilege?buyerId="+order.getBuyerId();
@@ -75,9 +86,8 @@ public class OrderService {
 		if(isPrivileged.equals(true)) {
 			shippingCost=new BigDecimal(0);
 		}
-		
 		amount=amount.subtract(discount);
-		amount=amount.add(shippingCost);	
+		amount=amount.add(shippingCost);
 		order.setAmount(amount);
 		order.setDate(new Date());order.setStatus("ORDER PLACED");
 		
@@ -94,7 +104,7 @@ public class OrderService {
 		});
 		
 		// Calculating and Updating the reward points in the user service
-		Integer newRewardPoints = new Integer(amount.intValue()); // 100 ruppees equals 1 point
+		Integer newRewardPoints = new Integer(amount.intValue()/100)+valuesArray[1]; // 100 ruppees equals 1 point
 		String updateRewardPointsUrl = userServiceUrl +"rewardPoint/update?buyerId="+order.getBuyerId()+"&point="+newRewardPoints;
 		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
 	}
@@ -116,17 +126,28 @@ public class OrderService {
 	}
 	
 	public ArrayList <OrderBean> getAllOrders(Integer buyerId) {
-		Iterable<OrderEntity> ordersEntities=orderrepo.findAll();
-		ArrayList <OrderBean> orders= new ArrayList<>();
-		for(OrderEntity oe: ordersEntities){
-			if (oe.getBuyerId().equals(buyerId)) {
-				OrderBean ob = new OrderBean();
-				BeanUtils.copyProperties(oe, ob);
-				orders.add(ob);
-				}
-		}
-		return orders;
-	}	
+        Iterable<OrderEntity> ordersEntities=orderrepo.findAll();
+        ArrayList <OrderBean> orders= new ArrayList<>();
+        List<ProductsOrdered> allOrderedProducts=(List<ProductsOrdered>) orderProdsRepo.findAll();
+        for(OrderEntity oe: ordersEntities){
+            if (oe.getBuyerId().equals(buyerId)) {
+				ArrayList<Product> orderedProducts=new ArrayList<>();
+                for(int i=0;i<allOrderedProducts.size();i++){
+                    ProductsOrdered orderprod=allOrderedProducts.get(i);
+                    if(oe.getOrderId().equals(orderprod.getOrderId())) {
+                        Product prod=new Product();
+                        BeanUtils.copyProperties(orderprod, prod);
+                        orderedProducts.add(prod);
+                    }
+                }
+                OrderBean ob = new OrderBean();
+                BeanUtils.copyProperties(oe, ob);
+                ob.setOrderedProducts(orderedProducts);
+                orders.add(ob);
+                }
+        }
+        return orders;
+    }	
 	
 	public ArrayList<ProductsOrdered> getSellerOrders(Integer sellerId) {
 		ArrayList <ProductsOrdered> orderedProducts = new ArrayList<>();

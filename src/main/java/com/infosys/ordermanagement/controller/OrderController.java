@@ -61,19 +61,16 @@ public class OrderController {
 				orderservice.reOrder(order);
 			}
 		}
-		
 	}
 	
 	@PostMapping("/orders/placeOrder")
 	public String placeOrder(@RequestBody OrderBean order) {
 		
-		cartServiceUrl=cartServiceUrl+"cart/checkout?buyerId="+order.getBuyerId().toString();		
+		String cartServiceUrl1=cartServiceUrl+"cart/checkout?buyerId="+order.getBuyerId();		
 		try {
-			ResponseEntity<Product[]> responseEntity = restTemplate.getForEntity(cartServiceUrl, Product[].class);
-		
-		Product[] objects = responseEntity.getBody();
-		
-		
+        ResponseEntity<Product[]> responseEntity = restTemplate.getForEntity(cartServiceUrl1, Product[].class);   
+        Product[] objects = responseEntity.getBody();
+
 		// Product Service needs array of product Ids
 		List<Integer> prodIds= new ArrayList<Integer>();
 		for(int i=0;i<objects.length;i++) {prodIds.add(objects[i].getProdId());}
@@ -88,7 +85,6 @@ public class OrderController {
 		// Contacting the Product Service, receives an array of Product Objects
 		ResponseEntity<Product[]> products1 = restTemplate.postForEntity(productServiceUrl,request, Product[].class);
 		Product[] products12 = products1.getBody();
-		
 		ArrayList<Product> products=new ArrayList<Product>();
 		for(int i=0;i<products12.length;i++) {
 			products.add(products12[i]);
@@ -128,10 +124,5 @@ public class OrderController {
 	@RequestMapping("/orders/cancel/{orderId}")
 	public void cancelOrder(@PathVariable("orderId") Integer orderId ) {
 		orderservice.cancelAnOrder(orderId);
-	}
-	
-	@RequestMapping("/orders/dummy")
-	public void dummy() {
-		orderservice.usingRewardPoints(new Integer(12));
 	}
 }
