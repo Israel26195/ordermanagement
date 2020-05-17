@@ -8,6 +8,8 @@ import javax.persistence.Id;
 import javax.persistence.IdClass;
 import javax.persistence.Table;
 
+import java.math.BigDecimal;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -32,6 +34,17 @@ public class ProductsOrdered implements Serializable{
 	
 	@Column(name="STATUS")
 	private String status;
+
+	@Column(name="PRICE")
+    private BigDecimal price;
+    
+    public BigDecimal getPrice() {
+        return price;
+    }
+
+    public void setPrice(BigDecimal price) {
+        this.price = price;
+    }
 
 	public Integer getQuantity() {
 		return quantity;

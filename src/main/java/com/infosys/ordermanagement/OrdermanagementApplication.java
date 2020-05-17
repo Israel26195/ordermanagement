@@ -28,7 +28,6 @@ public class OrdermanagementApplication {
 
         SpringApplication app = new SpringApplication(OrdermanagementApplication.class);
         app.setAdditionalProfiles("aws");
-        app.setDefaultProperties(PROP);
         app.run(args);
     }
 
@@ -43,7 +42,7 @@ public class OrdermanagementApplication {
         String bucket_name = "order-properties";
         Properties prop = new Properties();
 
-        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion("us-east-2").build();
+        final AmazonS3 s3 = AmazonS3ClientBuilder.defaultClient();
         S3Object object = s3.getObject(new GetObjectRequest(bucket_name, key_name));
         try {
             BufferedReader reader = new BufferedReader(new InputStreamReader(object.getObjectContent()));
