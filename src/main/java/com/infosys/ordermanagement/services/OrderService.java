@@ -109,9 +109,11 @@ public class OrderService {
 		restTemplate.put(updateRewardPointsUrl,newRewardPoints,Integer.class);
 	}
 	
-	public void reOrder(OrderBean order) {
+	public String reOrder(OrderBean order) {
+		try {
 		ArrayList<Product> orderedProducts=new ArrayList<Product>();
 		Integer orderId=order.getOrderId();
+		// Finding all the products for that particular Order
 		orderProdsRepo.findAll().forEach((product)->{
 			if(product.getOrderId().equals(orderId)) {
 				Product prodBean=new Product();
@@ -119,10 +121,16 @@ public class OrderService {
 				orderedProducts.add(prodBean);
 			}
 		});
+		// Setting some basic values before placing the order
 		order.setOrderedProducts(orderedProducts);
 		order.setAmount(new BigDecimal(0));
 		order.setOrderId(null);
 		this.placeOrder(order);
+		}catch(Exception e){
+			e.printStackTrace();
+			return "Error in placing the order! Contact your Admin";
+		}
+		return "Reorder is successful";
 	}
 	
 	public ArrayList <OrderBean> getAllOrders(Integer buyerId) {
@@ -130,10 +138,12 @@ public class OrderService {
         ArrayList <OrderBean> orders= new ArrayList<>();
         List<ProductsOrdered> allOrderedProducts=(List<ProductsOrdered>) orderProdsRepo.findAll();
         for(OrderEntity oe: ordersEntities){
+			// It gets all the orders and filters based on BuyerId
             if (oe.getBuyerId().equals(buyerId)) {
 				ArrayList<Product> orderedProducts=new ArrayList<>();
                 for(int i=0;i<allOrderedProducts.size();i++){
                     ProductsOrdered orderprod=allOrderedProducts.get(i);
+					// Finding the ordered Products for each and every order
                     if(oe.getOrderId().equals(orderprod.getOrderId())) {
                         Product prod=new Product();
                         BeanUtils.copyProperties(orderprod, prod);
@@ -148,7 +158,7 @@ public class OrderService {
         }
         return orders;
     }	
-	
+	// Identifies all the products ordered to a particular seller
 	public ArrayList<ProductsOrdered> getSellerOrders(Integer sellerId) {
 		ArrayList <ProductsOrdered> orderedProducts = new ArrayList<>();
 		orderProdsRepo.findAll().forEach((ProductsOrdered ordProd)->{
@@ -160,31 +170,62 @@ public class OrderService {
 		return orderedProducts;
 	}
 	
-	public void updateStatus(Integer orderId,Integer prodId,String status) {
+	public String updateStatus(Integer orderId,Integer prodId,String status) {
+		Boolean flag=false;
+		try {
 		List<ProductsOrdered> products=(List<ProductsOrdered>) orderProdsRepo.findAll();
-		products.forEach((product)->{
+		for(int i=0;i<products.size();i++){
+			ProductsOrdered product=products.get(i);
+			// Checking the orderId and ProdId before updating
 			if(product.getOrderId().equals(orderId) && product.getProdId().equals(prodId)) {
 				BeanUtils.copyProperties(product,productsOrdered);
 				orderProdsRepo.delete(product);
 				productsOrdered.setStatus(status);
 				orderProdsRepo.save(productsOrdered);
+				flag=true;
 			}
-		});
-		
+		}
+		}catch(Exception e){
+			e.printStackTrace();
+			return "Error in updating the order! Contact your Admin";
+		}
+		if(flag){
+			return "Order status updated successfully";
+		}else{
+			return "Updation is not successful. Check for issues";
+		}
 	}
 	
-	public void cancelAnOrder(Integer orderId) {
-		List<ProductsOrdered> products=(List<ProductsOrdered>) orderProdsRepo.findAll();
-		products.forEach((product)->{
-			if(product.getOrderId().equals(orderId)) {
-				orderProdsRepo.delete(product);
+	public String cancelAnOrder(Integer orderId) {
+		Boolean flag=false;
+		Boolean flagOne=false;
+		try{
+			Iterable<OrderEntity> ordersEntities=orderrepo.findAll();
+			// Deleting the order
+			for(OrderEntity order: ordersEntities){
+				if(order.getOrderId().equals(orderId)) {
+					orderrepo.delete(order);					
+					flagOne=true;
+				}
 			}
-		});
-		orderrepo.findAll().forEach((order)->{
-			if(order.getOrderId().equals(orderId)) {
-				orderrepo.delete(order);
-			}
-		});
+			List<ProductsOrdered> products=(List<ProductsOrdered>) orderProdsRepo.findAll();
+			// Deleting all the product ordered in that order
+			for(int i=0;i<products.size();i++){
+				ProductsOrdered product=products.get(i);
+				if(product.getOrderId().equals(orderId)) {
+						orderProdsRepo.delete(product);
+						flag=true;
+				}
+			}			
+		}catch(Exception e){
+			e.printStackTrace();
+			return "Error in canceling the order! Contact your Admin";
+		}
+		if(flag&flagOne){
+			return "Order Canceled successfully.";
+		}else{
+			return "Cancellation is not successful. Either order is not present or that order doesnt have any products";
+		}
 		
 	}
 }
