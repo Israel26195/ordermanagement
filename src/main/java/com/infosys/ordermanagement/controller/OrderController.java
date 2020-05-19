@@ -25,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.client.RestTemplate;
 
 import com.infosys.ordermanagement.Beans.OrderBean;
@@ -53,13 +54,21 @@ public class OrderController {
 	}
 	
 	@PostMapping("/orders/reOrder/{orderId}/{buyerId}")
-	public void reorder(@PathVariable("orderId") Integer orderId,@PathVariable("buyerId") Integer buyerId) {
+	public String reorder(@PathVariable("orderId") Integer orderId,@PathVariable("buyerId") Integer buyerId) {
 		ArrayList <OrderBean> orders=orderservice.getAllOrders(buyerId);
+		Boolean flag=false;
+		String result="";
 		for(int i =0; i<orders.size();i++) {
 			if(orderId.equals(orders.get(i).getOrderId())) {
 				OrderBean order=orders.get(i);
-				orderservice.reOrder(order);
+				flag=true;
+				result=orderservice.reOrder(order);
 			}
+		}
+		if(flag){
+			return result;
+		}else{
+			return "Reorder is not successful; The order that you are trying to reorder may not be present";
 		}
 	}
 	
@@ -108,11 +117,11 @@ public class OrderController {
 	}
 	
 	@RequestMapping(method=RequestMethod.PUT,value="/orders/seller/status")
-	public void updateStatus (@RequestBody Product product) {
+	public String updateStatus (@RequestBody Product product) {
 		Integer orderId=product.getOrderId();
 		Integer prodId=product.getProdId();
 		String status= product.getStatus();
-		orderservice.updateStatus(orderId,prodId,status);
+		return orderservice.updateStatus(orderId,prodId,status);
 	}
 	
 //	With the seller id, this method will return all the orders that are present for a particular seller
@@ -121,8 +130,8 @@ public class OrderController {
 		return orderservice.getSellerOrders(sellerId);	
 	}
 	
-	@RequestMapping("/orders/cancel/{orderId}")
-	public void cancelOrder(@PathVariable("orderId") Integer orderId ) {
-		orderservice.cancelAnOrder(orderId);
+	@DeleteMapping("/orders/cancel/{orderId}")
+	public String cancelOrder(@PathVariable("orderId") Integer orderId ) {
+		return orderservice.cancelAnOrder(orderId);
 	}
 }
